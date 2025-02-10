@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "timestamp": 1739170510630,
+    "products": [
+      {
+        "product": 2,
+        "quantity": 2
+      },
+      {
+        "product": 1,
+        "quantity": 1
+      }
+    ]
+  }
+]

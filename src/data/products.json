@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "title": "Laptop",
+    "description": "Una laptop potente",
+    "price": 1200,
+    "thumbnail": "laptop.jpg",
+    "code": "LAP123",
+    "stock": 5
+  },
+  {
+    "id": 2,
+    "title": "mouse",
+    "description": "mouse gamer de ultima generación",
+    "price": 500,
+    "thumbnail": "mouse.jpg",
+    "code": "MOU123",
+    "stock": 4
+  }
+]
