@@ -16,5 +16,14 @@
     "thumbnail": "mouse.jpg",
     "code": "MOU123",
     "stock": 4
+  },
+  {
+    "id": 3,
+    "title": "monitor",
+    "description": "monitor 120hz",
+    "price": 1000,
+    "thumbnail": "elmonitor.jpg",
+    "code": "monitor1",
+    "stock": 2
   }
 ]
