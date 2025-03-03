@@ -13,6 +13,7 @@ module.exports = (productManager) => {
     });
 
     router.post('/', async (req, res) => {
+        console.log("🔹 Se recibió una solicitud POST a /products");  // Verificar si llega la solicitud
         console.log("Datos recibidos:", req.body);
 
         try {
@@ -24,12 +25,22 @@ module.exports = (productManager) => {
                 typeof price !== 'number' || typeof thumbnail !== 'string' ||
                 typeof code !== 'string' || typeof stock !== 'number'
             ) {
+                console.log('Error de validación en el producto:', req.body);
                 return res.status(400).json({ error: 'Todos los campos son obligatorios y deben tener el tipo de dato correcto' });
             }
 
             const newProduct = await productManager.addProduct({ title, description, price, thumbnail, code, stock });
+            
+            if (!newProduct) {
+                console.log('Producto no agregado');
+                return res.status(400).json({ error: 'Producto no válido' });
+            }
+
+            req.io.emit('updateProducts', await productManager.getProducts());
+            console.log('Producto agregado:', newProduct);
             res.status(201).json(newProduct);
         } catch (error) {
+            console.error("Error al agregar producto:", error);
             res.status(500).json({ error: error.message });
         }
     });
