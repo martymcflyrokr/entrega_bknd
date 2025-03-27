@@ -15,8 +15,19 @@ class CartManager {
 
     async getCartById(id) {
         try {
-            const cart = await Cart.findById(id).populate('products.product');
-            return cart || null;
+            const cart = await Cart.findById(id).populate({
+                path: 'products.product',
+                match: { status: true } // Solo obtener productos activos
+            });
+            
+            if (!cart) {
+                return null;
+            }
+
+            // Filtrar productos que ya no existen
+            cart.products = cart.products.filter(item => item.product !== null);
+            
+            return cart;
         } catch (error) {
             console.error('Error al obtener el carrito:', error);
             throw error;
@@ -36,7 +47,7 @@ class CartManager {
             }
 
             const existingProduct = cart.products.find(
-                item => item.product.toString() === productId
+                item => item.product && item.product.toString() === productId
             );
 
             if (existingProduct) {

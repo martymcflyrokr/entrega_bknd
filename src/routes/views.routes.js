@@ -84,10 +84,15 @@ module.exports = (io, productManager, cartManager) => {
                     error: 'Carrito no encontrado'
                 });
             }
-            // Calcular el total del carrito
-            const total = cart.products.reduce((sum, item) => {
+
+            // Filtrar productos nulos y calcular el total de manera segura
+            const validProducts = cart.products.filter(item => item.product !== null);
+            const total = validProducts.reduce((sum, item) => {
                 return sum + (item.product.price * item.quantity);
             }, 0);
+
+            // Actualizar el carrito con solo los productos válidos
+            cart.products = validProducts;
             
             res.render('cart', { cart, total });
         } catch (error) {
