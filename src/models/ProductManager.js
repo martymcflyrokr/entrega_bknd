@@ -1,135 +1,96 @@
-const fs = require('fs').promises;
-const path = require('path');
+const Product = require('./Product');
 
 class ProductManager {
-    constructor(filePath) {
-        if (!filePath) {
-            throw new Error('No se ha especificado una ruta válida para el archivo de productos');
-        }
-        this.filePath = path.resolve(filePath);
-    }
-
-    // Leer archivo
-    async readFile() {
+    async getProducts({ limit = 10, page = 1, sort, query = {} } = {}) {
         try {
-            const data = await fs.readFile(this.filePath, 'utf8');
-            console.log('Productos leídos:', data); // Para verificar los datos leídos
-            return JSON.parse(data);
-        } catch (error) {
-            console.log('Error al leer el archivo:', error);
-            if (error.code === 'ENOENT') {
-                console.warn(`⚠️ Archivo no encontrado: ${this.filePath}. Creando uno nuevo.`);
-                return []; // Si no existe el archivo, retorna un arreglo vacío
+            let filter = {};
+            
+            // Aplicar filtros si existen
+            if (Object.keys(query).length > 0) {
+                filter = { ...query };
             }
-            throw error; // Si es otro error, lo lanza
-        }
-    }
 
-    // Escribir archivo
-    async writeFile(data) {
-        try {
-            await fs.writeFile(this.filePath, JSON.stringify(data, null, 2), 'utf8');
-            console.log('Archivo actualizado correctamente');
+            // Configurar opciones de consulta
+            const options = {
+                limit: parseInt(limit),
+                skip: (parseInt(page) - 1) * parseInt(limit),
+                sort: sort ? { price: sort === 'asc' ? 1 : -1 } : {}
+            };
+
+            // Ejecutar consulta
+            const [products, total] = await Promise.all([
+                Product.find(filter, null, options).lean(),
+                Product.countDocuments(filter)
+            ]);
+
+            const totalPages = Math.ceil(total / limit);
+
+            return {
+                status: 'success',
+                payload: products,
+                totalPages,
+                prevPage: page > 1 ? page - 1 : null,
+                nextPage: page < totalPages ? page + 1 : null,
+                page: parseInt(page),
+                hasPrevPage: page > 1,
+                hasNextPage: page < totalPages,
+                prevLink: page > 1 ? `?page=${page - 1}&limit=${limit}` : null,
+                nextLink: page < totalPages ? `?page=${page + 1}&limit=${limit}` : null
+            };
         } catch (error) {
-            console.log('Error al escribir el archivo:', error);
+            console.error('Error al obtener productos:', error);
+            throw error;
         }
     }
 
-    // Obtener productos (sincrónico)
-    getProductsSync() {
-        try {
-            const data = require(this.filePath);
-            return data;
-        } catch (error) {
-            return [];
-        }
-    }
-
-    // Obtener todos los productos
-    async getProducts() {
-        return await this.readFile();
-    }
-
-    // Obtener producto por ID
     async getProductById(id) {
-        const products = await this.readFile();
-        id = parseInt(id, 10);
-        const product = products.find(prod => prod.id === id);
-        return product || null;
+        try {
+            const product = await Product.findById(id);
+            return product || null;
+        } catch (error) {
+            console.error('Error al obtener producto por ID:', error);
+            throw error;
+        }
     }
 
-    // Agregar producto
-    async addProduct({ title, description, price, thumbnail, code, stock }) {
-        const products = await this.readFile();
+    async addProduct(productData) {
+        try {
+            const existingProduct = await Product.findOne({ code: productData.code });
+            if (existingProduct) {
+                throw new Error(`Ya existe un producto con el código: ${productData.code}`);
+            }
 
-        // Verificar si el código del producto ya existe
-        if (products.some(product => product.code === code)) {
-            console.log(`Ya existe un producto con el código: '${code}'`);
-            return null; // Si el producto existe, no lo agrega
+            const newProduct = new Product(productData);
+            await newProduct.save();
+            return newProduct;
+        } catch (error) {
+            console.error('Error al agregar producto:', error);
+            throw error;
         }
-
-        // Validar datos del producto
-        if (!title || !price) {
-            console.log('Producto inválido:', { title, price });
-            return null; // Si los campos requeridos no están presentes, no lo agrega
-        }
-
-        const newProduct = {
-            id: products.length + 1, 
-            title,
-            description,
-            price,
-            thumbnail,
-            code,
-            stock,
-        };
-
-        products.push(newProduct);
-        console.log('Producto agregado y guardado:', newProduct); // Verifica que el producto se guarda
-        await this.writeFile(products);
-        return newProduct;
     }
 
-    // Actualizar producto
-    async updateProduct(id, { title, description, price, thumbnail, code, stock }) {
-        const products = await this.readFile();
-        id = parseInt(id, 10);
-        const productIndex = products.findIndex(prod => prod.id === id);
-
-        if (productIndex === -1) {
-            console.log('Producto no encontrado');
-            return null; // Si no se encuentra el producto, retorna null
+    async updateProduct(id, productData) {
+        try {
+            const updatedProduct = await Product.findByIdAndUpdate(
+                id,
+                productData,
+                { new: true, runValidators: true }
+            );
+            return updatedProduct || null;
+        } catch (error) {
+            console.error('Error al actualizar producto:', error);
+            throw error;
         }
-
-        const updatedProduct = {
-            ...products[productIndex],
-            title,
-            description,
-            price,
-            thumbnail,
-            code,
-            stock,
-        };
-
-        products[productIndex] = updatedProduct;
-        await this.writeFile(products);
-        return updatedProduct;
     }
 
-    // Eliminar producto
     async deleteProduct(id) {
-        const products = await this.readFile();
-        id = parseInt(id, 10);
-
-        const productIndex = products.findIndex(prod => prod.id === id);
-        if (productIndex === -1) {
-            console.log('Producto no encontrado');
-            return null; // Si no se encuentra el producto, retorna null
+        try {
+            const deletedProduct = await Product.findByIdAndDelete(id);
+            return deletedProduct || null;
+        } catch (error) {
+            console.error('Error al eliminar producto:', error);
+            throw error;
         }
-
-        const deletedProduct = products.splice(productIndex, 1)[0];
-        await this.writeFile(products);
-        return deletedProduct;
     }
 }
 
