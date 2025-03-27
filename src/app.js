@@ -3,17 +3,28 @@ const { Server } = require('socket.io');
 const { engine } = require('express-handlebars');
 const path = require('path');
 const http = require('http');
+const connectDB = require('./config/db.config');
 
 const ProductManager = require('./models/ProductManager');
+const CartManager = require('./models/CartManager');
 
 const app = express();
 const server = http.createServer(app); // Servidor HTTP para socket.io
 const io = new Server(server); // Instancia de WebSockets
 
-const productManager = new ProductManager('./src/data/products.json');
+const productManager = new ProductManager();
+const cartManager = new CartManager();
+
+// Conectar a MongoDB
+connectDB();
 
 // Configuración de Handlebars
-app.engine('handlebars', engine());
+app.engine('handlebars', engine({
+    runtimeOptions: {
+        allowProtoPropertiesByDefault: true,
+        allowProtoMethodsByDefault: true
+    }
+}));
 app.set('view engine', 'handlebars');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -27,19 +38,18 @@ app.use((req, res, next) => {
     next();
 });
 
-// Importar rutas
-const viewsRouter = require('./routes/views.routes')(io, productManager);
+// Rutas de la API
+const productRoutes = require('./routes/products.routes');
+const cartRoutes = require('./routes/carts.routes');
+app.use('/api/products', productRoutes(productManager));
+app.use('/api/carts', cartRoutes(cartManager));
+
+// Rutas de las vistas
+const viewsRouter = require('./routes/views.routes')(io, productManager, cartManager);
 app.use('/', viewsRouter);
 
 const PORT = 3000;
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-
-// Rutas
-const productRoutes = require('./routes/products.routes');
-app.use('/products', productRoutes(productManager));
-// Servir archivos estáticos
-app.use(express.static(path.join(__dirname, 'public')));
-
 
 // WebSockets
 io.on('connection', async (socket) => {

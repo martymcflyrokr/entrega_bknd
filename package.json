@@ -4,15 +4,22 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "dev": "nodemon src/app.js",
+    "migrate": "node src/scripts/migrateData.js",
+    "generate": "node src/scripts/generateProducts.js",
+    "download-images": "node src/scripts/downloadImages.js",
+    "init-cart": "node src/scripts/initCart.js",
+    "setup": "npm run download-images && npm run generate && npm run init-cart"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-handlebars": "^8.0.1",
+    "mongoose": "^8.1.1",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
